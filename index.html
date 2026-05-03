@@ -2,172 +2,172 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 這行 meta viewport 是手機版網頁的關鍵，確保比例正確 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我的影片 App</title>
+    <title>我的滑動影片 App</title>
+    
+    <!-- 引入 Swiper.js 的 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
     <style>
-        /* CSS 樣式區塊 */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        body {
-            font-family: sans-serif;
-            background-color: #1e1e1e;
-            color: white;
-        }
-
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            font-size: 20px;
-            background-color: #121212;
-        }
-
-        .video-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            padding: 20px;
-        }
-
-        /* 影片縮圖狀態 */
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            height: 200px; /* 手機上的預設高度 */
-            background-color: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        /* 讓影片填滿縮圖區塊 */
-        .video-wrapper video {
+        body, html {
             width: 100%;
             height: 100%;
-            object-fit: cover; 
-            pointer-events: none; /* 縮小狀態時，禁止點擊原生播放條，交由 JS 控制 */
+            font-family: sans-serif;
+            background-color: #000;
+            overflow: hidden; /* 防止原生滾動，交給 Swiper 處理 */
         }
 
-        /* 縮圖上的文字標籤 */
-        .overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.4);
-            font-size: 24px;
-            font-weight: bold;
-            pointer-events: none; /* 確保點擊事件能穿透到 wrapper */
-        }
-
-        /* --- 點擊放大後的全螢幕狀態 --- */
-        .video-wrapper.active {
+        /* 啟動畫面：用來突破瀏覽器自動播放限制 */
+        #start-screen {
             position: fixed;
-            top: 0; left: 0;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #121212;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        #start-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* Swiper 容器設定為全螢幕 */
+        .swiper {
             width: 100vw;
             height: 100vh;
-            z-index: 1000;
-            border-radius: 0;
+        }
+
+        .swiper-slide {
+            position: relative;
+            width: 100%;
+            height: 100%;
             background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .video-wrapper.active video {
-            object-fit: contain; /* 放大後顯示影片完整比例，不裁切 */
-            pointer-events: auto; /* 允許使用者操作原生的播放、暫停進度條 */
+        /* 影片設定為填滿螢幕 */
+        .swiper-slide video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 讓影片填滿畫面，若要看到完整比例可改為 contain */
+            pointer-events: none; /* 隱藏原生控制條，點擊事件交給外層 */
         }
 
-        .video-wrapper.active .overlay {
-            display: none; /* 放大後隱藏文字標籤 */
-        }
-
-        /* 關閉按鈕，預設隱藏 */
-        .close-btn {
-            display: none;
+        /* 影片提示文字 */
+        .video-label {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.3);
+            bottom: 50px;
+            left: 20px;
+            font-size: 32px;
+            font-weight: bold;
             color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 16px;
-            z-index: 1001;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-        }
-
-        /* 只有在 active 狀態時才顯示關閉按鈕 */
-        .video-wrapper.active .close-btn {
-            display: block;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            z-index: 10;
         }
     </style>
 </head>
 <body>
 
-    <div class="header">選擇要觀看的影片</div>
+    <!-- 啟動畫面 -->
+    <div id="start-screen">
+        <h2>歡迎來到我的影片 App</h2>
+        <button id="start-btn">開始觀看</button>
+    </div>
 
-    <div class="video-container">
-        <!-- 影片 A -->
-        <div class="video-wrapper">
-            <!-- src 請替換成你實際的影片路徑，例如 A.mp4 -->
-            <video src="https://www.dropbox.com/scl/fi/nxp5hk7xntgy25dr59t7q/A.mp4?rlkey=94fs4i03u1qvi9gncg5avktmk&raw=1"></video>
-            <div class="overlay">影片 A</div>
-        </div>
+    <!-- Swiper 影片輪播區塊 -->
+    <div class="swiper mySwiper">
+        <div class="swiper-wrapper">
+            
+            <!-- 影片 A -->
+            <div class="swiper-slide">
+                <!-- 移除了 controls，並加入 loop 讓單支影片播完可以重播 -->
+                <video src="https://www.dropbox.com/scl/fi/nxp5hk7xntgy25dr59t7q/A.mp4?rlkey=94fs4i03u1qvi9gncg5avktmk&raw=1" playsinline loop></video>
+                <div class="video-label">影片 A</div>
+            </div>
 
-        <!-- 影片 B -->
-        <div class="video-wrapper">
-            <video src="https://www.dropbox.com/scl/fi/45n36cethmyrdex108kk9/B.mp4?rlkey=pm7pxehqt04gdr4srgw5b0jya&raw=1"></video>
-            <div class="overlay">影片 B</div>
-        </div>
+            <!-- 影片 B -->
+            <div class="swiper-slide">
+                <video src="https://www.dropbox.com/scl/fi/45n36cethmyrdex108kk9/B.mp4?rlkey=pm7pxehqt04gdr4srgw5b0jya&raw=1" playsinline loop></video>
+                <div class="video-label">影片 B</div>
+            </div>
 
-        <!-- 影片 C -->
-        <div class="video-wrapper">
-            <video src="https://www.dropbox.com/scl/fi/s5r1ky9mkhqa93bpbpyf5/C.mp4?rlkey=kqp80o9qjj4fd6ec8zacgmxtw&raw=1" controls playsinline></video>
-            <div class="overlay">影片 C</div>
+            <!-- 影片 C -->
+            <div class="swiper-slide">
+                <video src="https://www.dropbox.com/scl/fi/s5r1ky9mkhqa93bpbpyf5/C.mp4?rlkey=kqp80o9qjj4fd6ec8zacgmxtw&raw=1" playsinline loop></video>
+                <div class="video-label">影片 C</div>
+            </div>
+
         </div>
     </div>
 
+    <!-- 引入 Swiper.js 的 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
     <script>
-        // JavaScript 互動邏輯區塊
-        const wrappers = document.querySelectorAll('.video-wrapper');
+        // 1. 初始化 Swiper
+        const swiper = new Swiper('.mySwiper', {
+            direction: 'vertical', // 設定為垂直上下滑動
+            loop: true,            // 開啟無限循環 (A->B->C->A)
+            on: {
+                // 當滑動切換完成時觸發
+                slideChangeTransitionEnd: function () {
+                    playActiveVideo();
+                }
+            }
+        });
 
-        wrappers.forEach(wrapper => {
-            // 動態為每個影片區塊加入「關閉」按鈕
-            const closeBtn = document.createElement('button');
-            closeBtn.classList.add('close-btn');
-            closeBtn.innerText = '✕ 關閉';
-            wrapper.appendChild(closeBtn);
-
-            const video = wrapper.querySelector('video');
-
-            // 1. 點擊縮圖：放大影片並播放
-            wrapper.addEventListener('click', function() {
-                // 如果已經是放大狀態，就不重複執行
-                if (this.classList.contains('active')) return;
-
-                // 將當前點擊的影片加上 active 類別（觸發全螢幕 CSS）
-                this.classList.add('active');
-                
-                // 開始播放影片 (加入一點延遲確保畫面展開後再播)
-                setTimeout(() => {
-                    video.play();
-                }, 150);
+        // 2. 控制影片播放的函數
+        function playActiveVideo() {
+            // 先暫停所有的影片，並將時間歸零
+            document.querySelectorAll('.swiper-slide video').forEach(video => {
+                video.pause();
+                video.currentTime = 0;
             });
 
-            // 2. 點擊關閉按鈕：縮小影片並暫停
-            closeBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // 阻止事件冒泡，以免同時觸發到下方的 wrapper 點擊事件
-                
-                wrapper.classList.remove('active'); // 移除全螢幕 CSS
-                video.pause(); // 暫停播放
-            });
+            // 找到當前畫面上正在顯示的那個 Slide (Swiper 會自動加上 active class)
+            const activeSlide = document.querySelector('.swiper-slide-active');
+            if (activeSlide) {
+                const activeVideo = activeSlide.querySelector('video');
+                // 播放當前的影片
+                if (activeVideo) {
+                    activeVideo.play().catch(error => {
+                        console.log("自動播放失敗，通常是因為缺少使用者互動:", error);
+                    });
+                }
+            }
+        }
+
+        // 3. 處理「開始觀看」按鈕的點擊事件
+        document.getElementById('start-btn').addEventListener('click', function() {
+            // 隱藏啟動畫面
+            const startScreen = document.getElementById('start-screen');
+            startScreen.style.opacity = '0';
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+            }, 500);
+
+            // 開始播放第一支影片
+            playActiveVideo();
         });
     </script>
 
