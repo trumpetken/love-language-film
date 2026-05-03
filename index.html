@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>請觀看下列影片</title>
+    <title>我的 YouTube Shorts 滑動 App</title>
     
     <!-- 引入 Swiper.js 的 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -20,10 +20,10 @@
             height: 100%;
             font-family: sans-serif;
             background-color: #000;
-            overflow: hidden;
+            overflow: hidden; /* 防止原生滾動，交由 Swiper 處理 */
         }
 
-        /* 啟動畫面 */
+        /* 啟動畫面：突破瀏覽器自動播放限制 */
         #start-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -49,7 +49,7 @@
             margin-top: 20px;
         }
 
-        /* Swiper 容器設定 */
+        /* Swiper 容器設定為全螢幕 */
         .swiper {
             width: 100vw;
             height: 100vh;
@@ -65,7 +65,7 @@
             align-items: center;
         }
 
-        /* YouTube 播放器容器：確保充滿螢幕但不可點擊（由上層透明區塊攔截滑動事件） */
+        /* YouTube 播放器容器 */
         .yt-container {
             position: absolute;
             top: 0; left: 0;
@@ -74,10 +74,10 @@
             pointer-events: none; /* 重要：防止 iframe 吃掉 Swiper 的滑動手勢 */
         }
         
-        /* 稍微放大 iframe，隱藏 YouTube 預設的上下黑邊或控制列 */
+        /* Shorts 專用設定：設定為 100% 寬高置中 */
         .yt-container iframe {
-            width: 150vw; 
-            height: 150vh;
+            width: 100vw; 
+            height: 100vh;
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -100,7 +100,7 @@
 
     <!-- 啟動畫面 -->
     <div id="start-screen">
-        <h2>歡迎來到我的影片 App</h2>
+        <h2>歡迎來到 Shorts 滑動 App</h2>
         <button id="start-btn">開始觀看</button>
     </div>
 
@@ -109,20 +109,19 @@
         <div class="swiper-wrapper">
             
             <!-- 影片 A -->
-            <!-- data-vid 填入 YouTube 影片網址 v= 後面的那串代碼 -->
-            <div class="swiper-slide" data-vid="pNY7KEhKrhA">
+            <div class="swiper-slide" data-vid="RgAFcjsIZTo">
                 <div class="yt-container" id="player-0"></div>
                 <div class="video-label">影片 A</div>
             </div>
 
             <!-- 影片 B -->
-            <div class="swiper-slide" data-vid="t4LoRTn1wZs">
+            <div class="swiper-slide" data-vid="6FBsVyQU-u4">
                 <div class="yt-container" id="player-1"></div>
                 <div class="video-label">影片 B</div>
             </div>
 
             <!-- 影片 C -->
-            <div class="swiper-slide" data-vid="iO80kVybDL8">
+            <div class="swiper-slide" data-vid="F-KB_lehT6M">
                 <div class="yt-container" id="player-2"></div>
                 <div class="video-label">影片 C</div>
             </div>
@@ -159,7 +158,8 @@
                         'loop': 1,          // 循環播放
                         'playlist': videoId, // loop 必須配合 playlist 參數
                         'mute': 0,
-                        'playsinline': 1    // iOS 不強制全螢幕
+                        'playsinline': 1,   // iOS 不強制全螢幕
+                        'origin': window.location.origin // 加上網域來源，避免 153 錯誤
                     }
                 });
             });
@@ -167,10 +167,11 @@
             initSwiper();
         }
 
+        // 初始化 Swiper
         function initSwiper() {
             swiperInstance = new Swiper('.mySwiper', {
-                direction: 'vertical',
-                loop: true,
+                direction: 'vertical', // 垂直滑動
+                loop: true,            // 無限循環
                 on: {
                     slideChangeTransitionEnd: function () {
                         playActiveYouTubeVideo();
@@ -179,6 +180,7 @@
             });
         }
 
+        // 控制影片播放與暫停
         function playActiveYouTubeVideo() {
             // 先暫停所有 YouTube 影片並回到開頭
             players.forEach(player => {
@@ -188,28 +190,30 @@
                 }
             });
 
-            // Swiper 無限循環時，DOM 結構會複製 slide，我們需要找到當下畫面中 active 的索引
-            // 由於複製的 slide 沒有被 YT API 綁定，最簡單的方式是利用 realIndex
+            // 取得當前畫面的實際索引 (realIndex)
             const activeIndex = swiperInstance.realIndex;
             
+            // 播放當前畫面的影片
             if (players[activeIndex] && typeof players[activeIndex].playVideo === 'function') {
                  players[activeIndex].playVideo();
             }
         }
 
-        // 啟動按鈕
+        // 啟動按鈕事件
         document.getElementById('start-btn').addEventListener('click', function() {
             if (!isApiReady) {
                 alert("YouTube API 載入中，請稍候再試。");
                 return;
             }
 
+            // 隱藏啟動畫面
             const startScreen = document.getElementById('start-screen');
             startScreen.style.opacity = '0';
             setTimeout(() => {
                 startScreen.style.display = 'none';
             }, 500);
 
+            // 開始播放第一支影片
             playActiveYouTubeVideo();
         });
     </script>
