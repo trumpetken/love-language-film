@@ -20,10 +20,10 @@
             height: 100%;
             font-family: sans-serif;
             background-color: #000;
-            overflow: hidden; /* 防止原生滾動，交由 Swiper 處理 */
+            overflow: hidden;
         }
 
-        /* 啟動畫面：突破瀏覽器自動播放限制 */
+        /* 啟動畫面 */
         #start-screen {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -37,6 +37,7 @@
             transition: opacity 0.5s ease;
         }
 
+        /* 啟動按鈕：新增 disabled 狀態的樣式 */
         #start-btn {
             padding: 15px 40px;
             font-size: 20px;
@@ -47,9 +48,15 @@
             cursor: pointer;
             font-weight: bold;
             margin-top: 20px;
+            transition: all 0.3s ease;
         }
 
-        /* Swiper 容器設定為全螢幕 */
+        #start-btn:disabled {
+            background-color: #555;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+
         .swiper {
             width: 100vw;
             height: 100vh;
@@ -65,16 +72,14 @@
             align-items: center;
         }
 
-        /* YouTube 播放器容器 */
         .yt-container {
             position: absolute;
             top: 0; left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* 重要：防止 iframe 吃掉 Swiper 的滑動手勢 */
+            pointer-events: none; 
         }
         
-        /* Shorts 專用設定：設定為 100% 寬高置中 */
         .yt-container iframe {
             width: 100vw; 
             height: 100vh;
@@ -83,7 +88,6 @@
             transform: translate(-50%, -50%);
         }
 
-        /* 影片提示文字 */
         .video-label {
             position: absolute;
             bottom: 50px;
@@ -98,29 +102,26 @@
 </head>
 <body>
 
-    <!-- 啟動畫面 -->
+    <!-- 啟動畫面：預設按鈕為 disabled -->
     <div id="start-screen">
         <h2>歡迎來到 Shorts 滑動 App</h2>
-        <button id="start-btn">開始觀看</button>
+        <button id="start-btn" disabled>影片載入中...</button>
     </div>
 
     <!-- Swiper 影片輪播區塊 -->
     <div class="swiper mySwiper">
         <div class="swiper-wrapper">
             
-            <!-- 影片 A -->
             <div class="swiper-slide" data-vid="RgAFcjsIZTo">
                 <div class="yt-container" id="player-0"></div>
                 <div class="video-label">影片 A</div>
             </div>
 
-            <!-- 影片 B -->
             <div class="swiper-slide" data-vid="6FBsVyQU-u4">
                 <div class="yt-container" id="player-1"></div>
                 <div class="video-label">影片 B</div>
             </div>
 
-            <!-- 影片 C -->
             <div class="swiper-slide" data-vid="F-KB_lehT6M">
                 <div class="yt-container" id="player-2"></div>
                 <div class="video-label">影片 C</div>
@@ -129,37 +130,47 @@
         </div>
     </div>
 
-    <!-- 引入 Swiper.js -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <!-- 引入 YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         let players = [];
         let swiperInstance;
-        let isApiReady = false;
+        let readyCount = 0;
+        let totalVideos = 0;
 
-        // 當 YouTube API 載入完成時，會自動呼叫這個函式
+        // 1. 初始化 YouTube API
         function onYouTubeIframeAPIReady() {
-            isApiReady = true;
             const slides = document.querySelectorAll('.swiper-slide');
+            totalVideos = slides.length;
             
-            // 為每個 slide 建立 YouTube 播放器實例
             slides.forEach((slide, index) => {
                 const videoId = slide.getAttribute('data-vid');
                 players[index] = new YT.Player(`player-${index}`, {
                     videoId: videoId,
                     playerVars: {
                         'autoplay': 0,
-                        'controls': 0,      // 隱藏控制列
-                        'rel': 0,           // 結束時不顯示相關影片
-                        'showinfo': 0,      // 隱藏影片標題
+                        'controls': 0,      
+                        'rel': 0,           
+                        'showinfo': 0,      
                         'modestbranding': 1,
-                        'loop': 1,          // 單支影片播完會自動重播
-                        'playlist': videoId, // loop 必須配合 playlist 參數
+                        'loop': 1,          
+                        'playlist': videoId, 
                         'mute': 0,
-                        'playsinline': 1,   // iOS 不強制全螢幕
-                        'origin': window.location.origin // 加上網域來源，避免 153 錯誤
+                        'playsinline': 1,   
+                        'origin': window.location.origin 
+                    },
+                    events: {
+                        // 【關鍵 1】等待每一支影片都載入完成
+                        'onReady': function() {
+                            readyCount++;
+                            // 如果全部載入完畢，才開放按鈕點擊
+                            if (readyCount === totalVideos) {
+                                const btn = document.getElementById('start-btn');
+                                btn.innerText = '開始觀看';
+                                btn.disabled = false;
+                            }
+                        }
                     }
                 });
             });
@@ -167,11 +178,11 @@
             initSwiper();
         }
 
-        // 初始化 Swiper
+        // 2. 初始化 Swiper
         function initSwiper() {
             swiperInstance = new Swiper('.mySwiper', {
-                direction: 'vertical', // 垂直滑動
-                rewind: true,          // 【修改點1】改為快速回捲，防止 YouTube 重新載入死機
+                direction: 'vertical',
+                rewind: true, // 快速回捲，保護 YouTube iframe
                 on: {
                     slideChangeTransitionEnd: function () {
                         playActiveYouTubeVideo();
@@ -180,12 +191,10 @@
             });
         }
 
-        // 控制影片播放與暫停
+        // 3. 滑動切換時的播放控制
         function playActiveYouTubeVideo() {
-            // 取得當前畫面的實際索引 (改用 activeIndex)
             const activeIndex = swiperInstance.activeIndex;
 
-            // 【修改點2】針對「非當前畫面」的其他影片，只做暫停，不強制拉回 0 秒
             players.forEach((player, index) => {
                 if (player && typeof player.pauseVideo === 'function') {
                     if (index !== activeIndex) {
@@ -194,19 +203,33 @@
                 }
             });
 
-            // 【修改點2】針對「當前畫面」的影片，回到 0 秒後再播放
+            // 經過啟動畫面的「喚醒」後，所有的影片都已經解鎖，所以這裡必定可以順利 seekTo(0) 和播放
             if (players[activeIndex] && typeof players[activeIndex].playVideo === 'function') {
                  players[activeIndex].seekTo(0);
                  players[activeIndex].playVideo();
             }
         }
 
-        // 啟動按鈕事件
+        // 4. 啟動按鈕事件：破解手機播放限制的魔法
         document.getElementById('start-btn').addEventListener('click', function() {
-            if (!isApiReady) {
-                alert("YouTube API 載入中，請稍候再試。");
-                return;
-            }
+            if (readyCount < totalVideos) return;
+
+            // 【關鍵 2：全體喚醒】利用這次真實點擊，將所有 iframe 靜音並播放，騙取瀏覽器權限
+            players.forEach(player => {
+                player.mute();       
+                player.playVideo();  
+            });
+
+            // 【關鍵 3：恢復原狀】0.4 秒後，影片已經取得權限了，此時將非當前的影片暫停並拉回原點，同時恢復聲音
+            setTimeout(() => {
+                players.forEach((player, index) => {
+                    player.unMute(); 
+                    if (index !== swiperInstance.activeIndex) {
+                        player.pauseVideo();
+                        player.seekTo(0); 
+                    }
+                });
+            }, 400);
 
             // 隱藏啟動畫面
             const startScreen = document.getElementById('start-screen');
@@ -214,9 +237,6 @@
             setTimeout(() => {
                 startScreen.style.display = 'none';
             }, 500);
-
-            // 開始播放第一支影片
-            playActiveYouTubeVideo();
         });
     </script>
 
