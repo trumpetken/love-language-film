@@ -155,7 +155,7 @@
                         'rel': 0,           // 結束時不顯示相關影片
                         'showinfo': 0,      // 隱藏影片標題
                         'modestbranding': 1,
-                        'loop': 1,          // 循環播放
+                        'loop': 1,          // 單支影片播完會自動重播
                         'playlist': videoId, // loop 必須配合 playlist 參數
                         'mute': 0,
                         'playsinline': 1,   // iOS 不強制全螢幕
@@ -171,7 +171,7 @@
         function initSwiper() {
             swiperInstance = new Swiper('.mySwiper', {
                 direction: 'vertical', // 垂直滑動
-                loop: true,            // 無限循環
+                rewind: true,          // 【修改點1】改為快速回捲，防止 YouTube 重新載入死機
                 on: {
                     slideChangeTransitionEnd: function () {
                         playActiveYouTubeVideo();
@@ -182,19 +182,21 @@
 
         // 控制影片播放與暫停
         function playActiveYouTubeVideo() {
-            // 先暫停所有 YouTube 影片並回到開頭
-            players.forEach(player => {
+            // 取得當前畫面的實際索引 (改用 activeIndex)
+            const activeIndex = swiperInstance.activeIndex;
+
+            // 【修改點2】針對「非當前畫面」的其他影片，只做暫停，不強制拉回 0 秒
+            players.forEach((player, index) => {
                 if (player && typeof player.pauseVideo === 'function') {
-                    player.pauseVideo();
-                    player.seekTo(0);
+                    if (index !== activeIndex) {
+                        player.pauseVideo();
+                    }
                 }
             });
 
-            // 取得當前畫面的實際索引 (realIndex)
-            const activeIndex = swiperInstance.realIndex;
-            
-            // 播放當前畫面的影片
+            // 【修改點2】針對「當前畫面」的影片，回到 0 秒後再播放
             if (players[activeIndex] && typeof players[activeIndex].playVideo === 'function') {
+                 players[activeIndex].seekTo(0);
                  players[activeIndex].playVideo();
             }
         }
