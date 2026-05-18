@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我的 YouTube Shorts 滑動 App</title>
+    <title>我的 YouTube 滑動 App</title>
     
-    <!-- 引入 Swiper.js 的 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
     <style>
@@ -80,6 +79,7 @@
             pointer-events: none; 
         }
         
+        /* 一般影片設定：寬高100%，YouTube 播放器會自動在上下補黑邊以維持 16:9 比例 */
         .yt-container iframe {
             width: 100vw; 
             height: 100vh;
@@ -102,29 +102,42 @@
 </head>
 <body>
 
-    <!-- 啟動畫面：預設按鈕為 disabled -->
     <div id="start-screen">
-        <h2>歡迎來到 Shorts 滑動 App</h2>
+        <h2>歡迎來到滑動影片 App</h2>
         <button id="start-btn" disabled>影片載入中...</button>
     </div>
 
-    <!-- Swiper 影片輪播區塊 -->
     <div class="swiper mySwiper">
         <div class="swiper-wrapper">
             
-            <div class="swiper-slide" data-vid="RgAFcjsIZTo">
+            <div class="swiper-slide" data-vid="6eaZhzh3ZpE">
                 <div class="yt-container" id="player-0"></div>
                 <div class="video-label">影片 A</div>
             </div>
 
-            <div class="swiper-slide" data-vid="6FBsVyQU-u4">
+            <div class="swiper-slide" data-vid="LpIjR5v1Nb4">
                 <div class="yt-container" id="player-1"></div>
                 <div class="video-label">影片 B</div>
             </div>
 
-            <div class="swiper-slide" data-vid="F-KB_lehT6M">
+            <div class="swiper-slide" data-vid="i-LtduaY6ZE">
                 <div class="yt-container" id="player-2"></div>
                 <div class="video-label">影片 C</div>
+            </div>
+
+            <div class="swiper-slide" data-vid="5GjI-z3aZ2s">
+                <div class="yt-container" id="player-3"></div>
+                <div class="video-label">影片 D</div>
+            </div>
+
+            <div class="swiper-slide" data-vid="wSCWfi5qDx0">
+                <div class="yt-container" id="player-4"></div>
+                <div class="video-label">影片 E</div>
+            </div>
+
+            <div class="swiper-slide" data-vid="pmnkC7xa0Io">
+                <div class="yt-container" id="player-5"></div>
+                <div class="video-label">影片 F</div>
             </div>
 
         </div>
@@ -161,10 +174,10 @@
                         'origin': window.location.origin 
                     },
                     events: {
-                        // 【關鍵 1】等待每一支影片都載入完成
+                        // 等待每一支影片都載入完成
                         'onReady': function() {
                             readyCount++;
-                            // 如果全部載入完畢，才開放按鈕點擊
+                            // 如果 6 支影片全部載入完畢，才開放按鈕點擊
                             if (readyCount === totalVideos) {
                                 const btn = document.getElementById('start-btn');
                                 btn.innerText = '開始觀看';
@@ -203,7 +216,6 @@
                 }
             });
 
-            // 經過啟動畫面的「喚醒」後，所有的影片都已經解鎖，所以這裡必定可以順利 seekTo(0) 和播放
             if (players[activeIndex] && typeof players[activeIndex].playVideo === 'function') {
                  players[activeIndex].seekTo(0);
                  players[activeIndex].playVideo();
@@ -214,13 +226,13 @@
         document.getElementById('start-btn').addEventListener('click', function() {
             if (readyCount < totalVideos) return;
 
-            // 【關鍵 2：全體喚醒】利用這次真實點擊，將所有 iframe 靜音並播放，騙取瀏覽器權限
+            // 全體喚醒
             players.forEach(player => {
                 player.mute();       
                 player.playVideo();  
             });
 
-            // 【關鍵 3：恢復原狀】0.4 秒後，影片已經取得權限了，此時將非當前的影片暫停並拉回原點，同時恢復聲音
+            // 恢復原狀
             setTimeout(() => {
                 players.forEach((player, index) => {
                     player.unMute(); 
